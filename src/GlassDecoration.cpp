@@ -7,7 +7,7 @@
 
 #include <algorithm>
 #include <GLES3/gl32.h>
-#include <hyprland/src/desktop/view/Window.hpp>
+#include <hyprland/src/desktop/view/window/Window.hpp>
 #include <hyprland/src/desktop/rule/windowRule/WindowRuleApplicator.hpp>
 #include <hyprland/src/render/OpenGL.hpp>
 #include <hyprland/src/render/Renderer.hpp>
@@ -147,7 +147,7 @@ void CGlassDecoration::draw(PHLMONITOR monitor, float const& alpha) {
     if (window) {
         const auto workspace = window->m_workspace;
 
-        const bool wsAnimating = workspace && !window->m_pinned && workspace->m_renderOffset->isBeingAnimated();
+        const bool wsAnimating = workspace && !(window->m_state & Desktop::View::WINDOW_STATE_PINNED) && workspace->m_renderOffset->isBeingAnimated();
         if (wsAnimating)
             damageEntire();
 
@@ -215,16 +215,16 @@ void CGlassDecoration::renderPass(PHLMONITOR monitor, const float& alpha) {
     GlassRenderer::blurBackground(m_sampleFramebuffer, blurRadius, blurIterations, source);
 
     float monitorScale  = monitor->m_scale;
-    float cornerRadius  = window->rounding() * monitorScale;
-    float roundingPower = window->roundingPower();
+    float cornerRadius  = window->presentation().rounding() * monitorScale;
+    float roundingPower = window->presentation().roundingPower();
 
     // The render alpha Hyprland hands decorations is activeInactive * fade.
     // Glass must follow fades (open/close, fullscreen, workspace moves) but
     // not the active/inactive dimming or opacity rules: those make the surface
     // more translucent — revealing more glass — and shouldn't wash out the
     // glass pane itself. Rebuild the fade-only alpha from its components.
-    float glassAlpha = window->alphaTotalWithout(Desktop::View::WINDOW_ALPHA_ACTIVE);
-    if (const auto workspace = window->m_workspace; workspace && !window->m_pinned)
+    float glassAlpha = window->presentation().alphaTotal();
+	if (const auto workspace = window->m_workspace; workspace && !(window->m_state & Desktop::View::WINDOW_STATE_PINNED))
         glassAlpha *= workspace->m_alpha->value();
 
     GlassRenderer::applyGlassEffect(m_sampleFramebuffer, source,
@@ -248,9 +248,9 @@ void CGlassDecoration::damageEntire() {
     const auto workspace = window->m_workspace;
     auto surfaceBox = window->getWindowMainSurfaceBox();
 
-    if (workspace && workspace->m_renderOffset->isBeingAnimated() && !window->m_pinned)
+    if (workspace && workspace->m_renderOffset->isBeingAnimated() && !(window->m_state & Desktop::View::WINDOW_STATE_PINNED))
         surfaceBox.translate(workspace->m_renderOffset->value());
-    surfaceBox.translate(window->m_floatingOffset);
+    surfaceBox.translate(window->presentation().floatingOffset());
 
     // Expand damage by our sampling padding so the render pass re-renders
     // background content (wallpaper, other windows) in the padded margin.

@@ -92,7 +92,7 @@ void CGlassLayerSurface::damageIfMoved() {
     const bool isAnimating = layerSurface->positionAnimation()->isBeingAnimated() ||
                              layerSurface->sizeAnimation()->isBeingAnimated() ||
                              layerSurface->alpha()[Desktop::View::LS_ALPHA_FADE]->isBeingAnimated() ||
-                             !layerSurface->m_mapped;
+                             !layerSurface->mapped();
 
     const bool moved = currentPosition != m_lastPosition || currentSize != m_lastSize;
 
@@ -147,7 +147,7 @@ void CGlassLayerSurface::sampleAndRedirect(PHLMONITOR monitor, float alpha) {
                                    currentGeneration != m_lastSceneGeneration ||
                                    isAnimating;
 
-    if (!layerSurface->m_mapped) {
+    if (!layerSurface->mapped()) {
         // During fade-out, re-sampling captures stale pixels. Reuse cached sample.
         if (!m_hasCachedSample)
             return;
